@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"github.com/ppal31/zkapps/locker"
 	"log"
@@ -51,12 +50,18 @@ func (w *Worker) lockAndSleep() func(writer http.ResponseWriter, r *http.Request
 		lt := r.URL.Query().Get("lt")
 		lk := r.URL.Query().Get("lk")
 		if lti, err := strconv.Atoi(lt); err == nil && lk != "" {
-			log.Printf("Trying to acquire lock for Key %v\n", lk)
-			lock := w.locker.AcquireLock(context.Background(), lk)
-			defer w.locker.ReleaseLock(lock)
-			log.Printf("TLock Acquired for Key %v Sleeping %v\n", lk, lt)
-			time.Sleep(time.Duration(lti) * time.Second)
-			fmt.Fprint(writer, fmt.Sprintf("Lock Acquired and release for %v\n", lock.GetLockId()))
+			ctx := r.Context()
+			select {
+			case <-ctx.Done():
+				log.Print(ctx.Err())
+				http.Error(writer, ctx.Err().Error(), http.StatusInternalServerError)
+			case lock := <-w.locker.AcquireLock(ctx, lk):
+				log.Printf("Trying to acquire lock for Key %v\n", lk)
+				defer w.locker.ReleaseLock(lock)
+				log.Printf("TLock Acquired for Key %v Sleeping %v\n", lk, lt)
+				time.Sleep(time.Duration(lti) * time.Second)
+				fmt.Fprint(writer, fmt.Sprintf("Lock Acquired and release for %v\n", lock.GetLockId()))
+			}
 		} else {
 			panic(err)
 		}

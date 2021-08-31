@@ -7,6 +7,6 @@ type Lock interface {
 }
 
 type Locker interface {
-	AcquireLock(ctx context.Context, key string) Lock
+	AcquireLock(ctx context.Context, key string) <-chan Lock
 	ReleaseLock(lock Lock)
 }
