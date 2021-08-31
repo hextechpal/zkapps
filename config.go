@@ -12,6 +12,10 @@ type Config struct {
 	Ns   string
 }
 
-func (c Config) GetLocker() locker.Locker {
-	return locker.Make(c.Zkc, c.Ns)
+func (c Config) GetLocker() (locker.Locker, error) {
+	zkl, err := locker.Make(c.Zkc, c.Ns)
+	if err != nil {
+		return nil, err
+	}
+	return zkl, nil
 }

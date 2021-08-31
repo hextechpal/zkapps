@@ -8,5 +8,7 @@ type Lock interface {
 
 type Locker interface {
 	AcquireLock(ctx context.Context, key string) Lock
+	AcquireLockV2(ctx context.Context, key string) Lock
+
 	ReleaseLock(lock Lock)
 }
